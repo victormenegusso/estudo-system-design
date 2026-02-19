@@ -1,0 +1,700 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "builtIn": 1,
+                "datasource": {
+                    "type": "grafana",
+                    "uid": "-- Grafana --"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+            }
+        ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+        {
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "id": 4,
+            "title": "Business Metrics",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Total requests per second handled by the system (Success + Error + Sold Out). Higher is better, but only if Success rate is high.",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 0,
+                "y": 1
+            },
+            "id": 5,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "10.0.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(rate(vendas_sucesso_total[1m])) + sum(rate(vendas_erro_total[1m])) + sum(rate(vendas_esgotado_total[1m]))",
+                    "legendFormat": "Total RPS",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Total Throughput (RPS)",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Breakdown of attempts. \n- Green (Sucesso): Good.\n- Red (Erro): System failure (DB timeout, connections exhausted).\n- Yellow (Esgotado): Business logic (Tickets sold out). This is NOT a system error.",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 8,
+                "y": 1
+            },
+            "id": 6,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "right",
+                    "showLegend": true
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(increase(vendas_sucesso_total[1m]))",
+                    "legendFormat": "Sucesso",
+                    "range": true,
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(increase(vendas_erro_total[1m]))",
+                    "legendFormat": "Erro",
+                    "range": true,
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(increase(vendas_esgotado_total[1m]))",
+                    "legendFormat": "Esgotado",
+                    "range": true,
+                    "refId": "C"
+                }
+            ],
+            "title": "Result Breakdown (Last 1m)",
+            "type": "piechart"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "How fast tickets are being actually SOLD. If this drops while Throughput is high, it means we are rejecting many requests (e.g. Sold Out or Errors).",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 16,
+                "y": 1
+            },
+            "id": 7,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(rate(vendas_sucesso_total[30s]))",
+                    "legendFormat": "Sales / sec",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Sales Rate",
+            "type": "timeseries"
+        },
+        {
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 9
+            },
+            "id": 20,
+            "title": "Application Performance (Latency & CPU)",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Response time percentiles. \n- Green (P50): Median time.\n- Yellow (P95): 95% of requests are faster than this.\n- Red (P99): The slowest 1%.\nIf P99 spikes while P50 is low, you have outliers (e.g. GC pauses or DB blocks).",
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 10
+            },
+            "id": 21,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
+                    "legendFormat": "P99",
+                    "range": true,
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
+                    "legendFormat": "P95",
+                    "range": true,
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
+                    "legendFormat": "P50",
+                    "range": true,
+                    "refId": "C"
+                }
+            ],
+            "title": "Request Latency (Percentiles)",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "CPU Usage of the application container.\n- Close to 1 (or 100% depending on cores) means CPU Saturation.\n- If CPU is low but Latency is high, the bottleneck is I/O (Database) or Locks, not processing power.",
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 10
+            },
+            "id": 22,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "system_cpu_usage",
+                    "legendFormat": "System CPU",
+                    "range": true,
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "process_cpu_usage",
+                    "legendFormat": "Process CPU",
+                    "range": true,
+                    "refId": "B"
+                }
+            ],
+            "title": "CPU Usage",
+            "type": "timeseries"
+        },
+        {
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 18
+            },
+            "id": 40,
+            "title": "Tomcat Thread Pool (Web Server Capacity)",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Monitor threads. \n- Busy: Threads actively processing a request.\n- Current: Total threads allocated by Tomcat (grows up to Max).\n- Config Max: The ceiling (200).\nIf 'Busy' hits 'Config Max', new requests will queue up.",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 19
+            },
+            "id": 41,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "tomcat_threads_busy_threads{name=\"http-nio-8080\"}",
+                    "legendFormat": "Busy Threads",
+                    "range": true,
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "tomcat_threads_current_threads{name=\"http-nio-8080\"}",
+                    "legendFormat": "Current Threads",
+                    "range": true,
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "tomcat_threads_config_max_threads{name=\"http-nio-8080\"}",
+                    "legendFormat": "Config Max (200)",
+                    "range": true,
+                    "refId": "C"
+                }
+            ],
+            "title": "Tomcat Thread Usage",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Java Heap memory usage.\n- Used: Current memory consumption.\n- Max: Limit before OutOfMemoryError.",
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "bytes"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 19
+            },
+            "id": 42,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "jvm_memory_used_bytes",
+                    "legendFormat": "Used",
+                    "range": true,
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "jvm_memory_max_bytes",
+                    "legendFormat": "Max Heap",
+                    "range": true,
+                    "refId": "B"
+                }
+            ],
+            "title": "JVM Memory",
+            "type": "timeseries"
+        },
+        {
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 27
+            },
+            "id": 8,
+            "title": "Database Connection Pool (HikariCP)",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Breakdown of the 10 connection pool.",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 28
+            },
+            "id": 1,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "hikaricp_connections_active",
+                    "legendFormat": "Active (In Use)",
+                    "range": true,
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "hikaricp_connections_idle",
+                    "legendFormat": "Idle (Ready)",
+                    "range": true,
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "hikaricp_connections_max",
+                    "legendFormat": "Max Pool Size",
+                    "range": true,
+                    "refId": "C"
+                }
+            ],
+            "title": "Hikari Pool Status",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Threads WAITING for a database connection. \n- Ideal: 0 or low spikes.\n- High value (e.g. 100+): Means requests are stuck waiting for a DB connection to free up. This causes high latency.",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 28
+            },
+            "id": 2,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "hikaricp_connections_pending",
+                    "legendFormat": "__auto",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Hikari Pending Connections (Threads Waiting)",
+            "type": "timeseries"
+        },
+        {
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 36
+            },
+            "id": 30,
+            "title": "Database Metrics (Postgres Exporter)",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Transactions Per Second (TPS) on the 'ingressos' database.\n- Commit: Succesful transactions.\n- Rollback: Failed ones.",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 37
+            },
+            "id": 31,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "rate(pg_stat_database_xact_commit{datname=\"ingressos\"}[1m])",
+                    "legendFormat": "Commits / sec",
+                    "range": true,
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "rate(pg_stat_database_xact_rollback{datname=\"ingressos\"}[1m])",
+                    "legendFormat": "Rollbacks / sec",
+                    "range": true,
+                    "refId": "B"
+                }
+            ],
+            "title": "Database Throughput (TPS)",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Active connections on the Postgres side.",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 37
+            },
+            "id": 32,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "pg_stat_activity_count{datname=\"ingressos\", state=\"active\"}",
+                    "legendFormat": "Active Backend Processes",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Postgres Active Connections",
+            "type": "timeseries"
+        }
+    ],
+    "refresh": "5s",
+    "schemaVersion": 38,
+    "style": "dark",
+    "tags": [],
+    "templating": {
+        "list": []
+    },
+    "time": {
+        "from": "now-15m",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Spring Boot & Hikari Metrics",
+    "uid": "ddi0l5w4863wgf",
+    "version": 1,
+    "weekStart": ""
+}

@@ -1,0 +1,20 @@
+plano-1/bloco-1/app/.gradle
+plano-1/bloco-1/app/build/
+
+# Ignore Gradle GUI config
+plano-1/bloco-1/app/gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+plano-1/bloco-1/app/gradle/wrapper/gradle-wrapper.jar
+
+# Avoid ignore Gradle wrappper properties
+plano-1/bloco-1/app/gradle/wrapper/gradle-wrapper.properties
+
+# Cache of project
+plano-1/bloco-1/app/.gradletasknamecache
+
+# Eclipse Gradle plugin generated files
+# Eclipse Core
+plano-1/bloco-1/app/.project
+# JDT-specific (Eclipse Java Development Tools)
+plano-1/bloco-1/app/.classpath

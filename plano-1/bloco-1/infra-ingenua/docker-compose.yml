@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ingressos
+    ports:
+      - "5432:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ingressos" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # LOG de queries lentas para debug
+    command: >
+      postgres -c log_min_duration_statement=100 -c log_statement=none -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
+
+  app:
+    build: ../app
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ingressos
+      # Parameterized Configs (with defaults matching application.properties defaults)
+      - TOMCAT_MAX_THREADS=${TOMCAT_MAX_THREADS:-200}
+      - HIKARI_MAX_POOL=${HIKARI_MAX_POOL:-10}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ── Observabilidade ──────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../shared/observability/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ../../shared/observability/grafana/provisioning:/etc/grafana/provisioning
+      - ../../shared/observability/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/ingressos?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8081:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+    # Fix for newer linux kernels / macos
+    platform: linux/amd64
+
+volumes:
+  grafana-data:
