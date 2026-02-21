@@ -11,7 +11,8 @@ import jakarta.persistence.Table;
 @Table(name = "ingresso")
 public class Ingresso {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ingresso_seq")
+    @jakarta.persistence.SequenceGenerator(name = "ingresso_seq", sequenceName = "ingresso_id_seq", allocationSize = 1000)
     private Long id;
     private String status;
     private String tipo;
