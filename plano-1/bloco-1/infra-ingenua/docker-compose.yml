@@ -28,7 +28,12 @@ services:
     environment:
       - DB_HOST=postgres
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ingressos
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0
+      # JAVA_TOOL_OPTIONS:
+      # - MaxRAMPercentage=60.0: Reserva ~307MB para o Heap (objetos)
+      # - MaxMetaspaceSize=128m: Limita metadados de classes (previne estouro Non-Heap)
+      # - CompressedClassSpaceSize=64m: Reduz a reserva virtual de 1GB para 64MB
+      # - ReservedCodeCacheSize=64m: Limita espaco para codigo JIT
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60.0 -XX:MaxMetaspaceSize=128m -XX:CompressedClassSpaceSize=64m -XX:ReservedCodeCacheSize=64m
       # Parameterized Configs (with defaults matching application.properties defaults)
       - TOMCAT_MAX_THREADS=${TOMCAT_MAX_THREADS:-200}
       - HIKARI_MAX_POOL=${HIKARI_MAX_POOL:-10}
