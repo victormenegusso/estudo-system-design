@@ -1,0 +1,176 @@
+services:
+
+  # ── Banco de Dados ──────────────────────────────────────────────────────────
+  # Nota sobre Réplicas de Leitura:
+  # Em produção, adicionaríamos uma réplica de leitura (standby) do PostgreSQL
+  # usando replicação por streaming. A app leria do standby e escreveria no primário.
+  # No Docker Compose, isso pode ser feito com a imagem bitnami/postgresql
+  # configurando POSTGRESQL_REPLICATION_MODE=master/slave.
+  # Por simplicidade de estudo, mantemos um único nó aqui.
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ingressos
+    ports:
+      - "5432:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ingressos" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres -c log_min_duration_statement=100 -c log_statement=none
+               -c shared_preload_libraries=pg_stat_statements
+               -c pg_stat_statements.track=all
+
+  # ── Cache / Rate Limiter ────────────────────────────────────────────────────
+  # Redis é a base para Rate Limiting distribuído e futuras features (sessões, filas).
+  # Em produção, o Rate Limiting seria implementado no código da app via scripts Lua
+  # (Token Bucket atômico), garantindo consistência mesmo com múltiplas réplicas.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Instâncias da Aplicação ─────────────────────────────────────────────────
+  # Usamos nomes fixos (app-1, app-2) em vez de deploy.replicas para:
+  # 1. Permitir scrape individual por instância no Prometheus (label distintos)
+  # 2. Permitir identificar qual instância respondeu via K6 (header X-Served-By)
+  # 3. Ter controle fino de CPU/memória por instância
+  app-1:
+    build: ../app
+    # Sem porta pública: todo tráfego deve passar pelo Nginx (L7)
+    environment:
+      - DB_HOST=postgres
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ingressos
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60.0 -XX:MaxMetaspaceSize=128m -XX:CompressedClassSpaceSize=64m -XX:ReservedCodeCacheSize=64m
+      - TOMCAT_MAX_THREADS=${TOMCAT_MAX_THREADS:-200}
+      - HIKARI_MAX_POOL=${HIKARI_MAX_POOL:-10}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+
+  app-2:
+    build: ../app
+    environment:
+      - DB_HOST=postgres
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ingressos
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60.0 -XX:MaxMetaspaceSize=128m -XX:CompressedClassSpaceSize=64m -XX:ReservedCodeCacheSize=64m
+      - TOMCAT_MAX_THREADS=${TOMCAT_MAX_THREADS:-200}
+      - HIKARI_MAX_POOL=${HIKARI_MAX_POOL:-10}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+
+  # ── Load Balancer (Nginx L7) ────────────────────────────────────────────────
+  # Nginx como reverse proxy HTTP (L7). Expõe a porta 8080 publicamente.
+  # Responsável por: Round-Robin, Rate Limiting e Circuit Breaker passivo.
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app-1
+      - app-2
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.25'
+
+  # ── Observabilidade ─────────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - app-1
+      - app-2
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ../../shared/observability/grafana/provisioning:/etc/grafana/provisioning
+      - ../../shared/observability/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/ingressos?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8081:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+    platform: linux/amd64
+
+  # Exporta métricas do Redis para o Prometheus
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  grafana-data:

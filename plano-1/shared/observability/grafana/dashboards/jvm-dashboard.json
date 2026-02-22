@@ -69,7 +69,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "sum(rate(vendas_sucesso_total[1m])) + sum(rate(vendas_erro_total[1m])) + sum(rate(vendas_esgotado_total[1m]))",
+                    "expr": "sum(rate(vendas_sucesso_total{instance=~\"$instance\"}[1m])) + sum(rate(vendas_erro_total{instance=~\"$instance\"}[1m])) + sum(rate(vendas_esgotado_total{instance=~\"$instance\"}[1m]))",
                     "legendFormat": "Total RPS",
                     "range": true,
                     "refId": "A"
@@ -118,7 +118,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "sum(increase(vendas_sucesso_total[1m]))",
+                    "expr": "sum(increase(vendas_sucesso_total{instance=~\"$instance\"}[1m]))",
                     "legendFormat": "Sucesso",
                     "range": true,
                     "refId": "A"
@@ -129,7 +129,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "sum(increase(vendas_erro_total[1m]))",
+                    "expr": "sum(increase(vendas_erro_total{instance=~\"$instance\"}[1m]))",
                     "legendFormat": "Erro",
                     "range": true,
                     "refId": "B"
@@ -140,7 +140,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "sum(increase(vendas_esgotado_total[1m]))",
+                    "expr": "sum(increase(vendas_esgotado_total{instance=~\"$instance\"}[1m]))",
                     "legendFormat": "Esgotado",
                     "range": true,
                     "refId": "C"
@@ -181,7 +181,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "sum(rate(vendas_sucesso_total[30s]))",
+                    "expr": "sum(rate(vendas_sucesso_total{instance=~\"$instance\"}[30s]))",
                     "legendFormat": "Sales / sec",
                     "range": true,
                     "refId": "A"
@@ -239,7 +239,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
+                    "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{instance=~\"$instance\"}[1m])) by (le))",
                     "legendFormat": "P99",
                     "range": true,
                     "refId": "A"
@@ -250,7 +250,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
+                    "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{instance=~\"$instance\"}[1m])) by (le))",
                     "legendFormat": "P95",
                     "range": true,
                     "refId": "B"
@@ -261,7 +261,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
+                    "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{instance=~\"$instance\"}[1m])) by (le))",
                     "legendFormat": "P50",
                     "range": true,
                     "refId": "C"
@@ -308,7 +308,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "system_cpu_usage",
+                    "expr": "system_cpu_usage{instance=~\"$instance\"}",
                     "legendFormat": "System CPU",
                     "range": true,
                     "refId": "A"
@@ -319,7 +319,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "process_cpu_usage",
+                    "expr": "process_cpu_usage{instance=~\"$instance\"}",
                     "legendFormat": "Process CPU",
                     "range": true,
                     "refId": "B"
@@ -371,7 +371,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "tomcat_threads_busy_threads{name=\"http-nio-8080\"}",
+                    "expr": "tomcat_threads_busy_threads{name=\"http-nio-8080\", instance=~\"$instance\"}",
                     "legendFormat": "Busy Threads",
                     "range": true,
                     "refId": "A"
@@ -382,7 +382,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "tomcat_threads_current_threads{name=\"http-nio-8080\"}",
+                    "expr": "tomcat_threads_current_threads{name=\"http-nio-8080\", instance=~\"$instance\"}",
                     "legendFormat": "Current Threads",
                     "range": true,
                     "refId": "B"
@@ -393,7 +393,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "tomcat_threads_config_max_threads{name=\"http-nio-8080\"}",
+                    "expr": "tomcat_threads_config_max_threads{name=\"http-nio-8080\", instance=~\"$instance\"}",
                     "legendFormat": "Config Max (200)",
                     "range": true,
                     "refId": "C"
@@ -410,9 +410,14 @@
             "description": "Java Heap memory usage.\n- Used: Current memory consumption.\n- Max: Limit before OutOfMemoryError.",
             "fieldConfig": {
                 "defaults": {
+                    "custom": {
+                        "stacking": {
+                            "group": "A",
+                            "mode": "normal"
+                        }
+                    },
                     "unit": "bytes"
-                },
-                "overrides": []
+                }
             },
             "gridPos": {
                 "h": 8,
@@ -440,8 +445,8 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "jvm_memory_used_bytes",
-                    "legendFormat": "Used",
+                    "expr": "jvm_memory_used_bytes{instance=~\"$instance\"}",
+                    "legendFormat": "{{id}}",
                     "range": true,
                     "refId": "A"
                 },
@@ -451,14 +456,148 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "jvm_memory_max_bytes",
-                    "legendFormat": "Max Heap",
+                    "expr": "jvm_memory_max_bytes{instance=~\"$instance\"}",
+                    "legendFormat": "Max ({{id}})",
                     "range": true,
                     "refId": "B"
                 }
             ],
-            "title": "JVM Memory",
+            "title": "JVM Memory Breakdown (Stacked)",
             "type": "timeseries"
+        },
+        {
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 45
+            },
+            "id": 50,
+            "title": "Application Health, Exceptions & HTTP Status",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Breakdown of Java exceptions occurring in HTTP requests.",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 0,
+                "y": 46
+            },
+            "id": 52,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum by (exception) (rate(http_server_requests_seconds_count{exception!=\"none\", instance=~\"$instance\"}[1m]))",
+                    "legendFormat": "{{exception}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Exception Breakdown / sec",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "HTTP Status codes distribution.",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 8,
+                "y": 46
+            },
+            "id": 51,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum by (status) (rate(http_server_requests_seconds_count{instance=~\"$instance\"}[1m]))",
+                    "legendFormat": "Status {{status}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "HTTP Status Codes / sec",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+            },
+            "description": "Shows if the instance has restarted.",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 16,
+                "y": 46
+            },
+            "id": 60,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus-ds"
+                    },
+                    "editorMode": "code",
+                    "expr": "process_uptime_seconds{instance=~\"$instance\"}",
+                    "legendFormat": "Uptime",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Instance Uptime",
+            "type": "stat"
         },
         {
             "gridPos": {
@@ -503,7 +642,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "hikaricp_connections_active",
+                    "expr": "hikaricp_connections_active{instance=~\"$instance\"}",
                     "legendFormat": "Active (In Use)",
                     "range": true,
                     "refId": "A"
@@ -514,7 +653,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "hikaricp_connections_idle",
+                    "expr": "hikaricp_connections_idle{instance=~\"$instance\"}",
                     "legendFormat": "Idle (Ready)",
                     "range": true,
                     "refId": "B"
@@ -525,7 +664,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "hikaricp_connections_max",
+                    "expr": "hikaricp_connections_max{instance=~\"$instance\"}",
                     "legendFormat": "Max Pool Size",
                     "range": true,
                     "refId": "C"
@@ -566,7 +705,7 @@
                         "uid": "prometheus-ds"
                     },
                     "editorMode": "code",
-                    "expr": "hikaricp_connections_pending",
+                    "expr": "hikaricp_connections_pending{instance=~\"$instance\"}",
                     "legendFormat": "__auto",
                     "range": true,
                     "refId": "A"
@@ -685,7 +824,30 @@
     "style": "dark",
     "tags": [],
     "templating": {
-        "list": []
+        "list": [
+            {
+                "current": {},
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus-ds"
+                },
+                "definition": "label_values(jvm_memory_used_bytes, instance)",
+                "hide": 0,
+                "includeAll": true,
+                "multi": false,
+                "name": "instance",
+                "options": [],
+                "query": {
+                    "query": "label_values(jvm_memory_used_bytes, instance)",
+                    "refId": "StandardVariableQuery"
+                },
+                "refresh": 1,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 1,
+                "type": "query"
+            }
+        ]
     },
     "time": {
         "from": "now-15m",

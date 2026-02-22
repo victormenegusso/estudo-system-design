@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  # Scrape de ambas as instâncias da aplicação com label "instance" distinto.
+  # Isso permite filtrar por instância no Grafana (ex: ver JVM heap por instância).
+  - job_name: 'spring-app'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['app-1:8080']
+        labels:
+          instance: 'app-1'
+      - targets: ['app-2:8080']
+        labels:
+          instance: 'app-2'
+
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
